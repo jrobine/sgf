@@ -47,7 +47,7 @@ def main():
     device = torch.device(args.device)
     autocast = lambda: torch.autocast(device_type=device.type, enabled=config.amp)
     # The arguments of torch.compile can be set here
-    compile_ = lambda mod: torch.compile(mod, disable=not config.compile)
+    compile_ = lambda mod: torch.compile(mod, dynamic=True, disable=not config.compile)
 
     # Initialize the environment, policy, agent, and world model
     seed = (config.seed + 17) * 13

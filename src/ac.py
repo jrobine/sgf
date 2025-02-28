@@ -129,6 +129,9 @@ class ActorCriticTrainer:
                 'actor_loss': actor_loss,
             }
 
+        batch_size = x.shape[0]
+        self.actor_optimizer.step(actor_loss, batch_size, it)
+
         with self.autocast():
             critic_stats = critic.get_stats(x, full_precision=True)
             return_loss = critic.loss(critic_stats, ret, seq_mask)
@@ -145,8 +148,6 @@ class ActorCriticTrainer:
                 critic_loss = return_loss
                 metrics['critic_loss'] = critic_loss
 
-        batch_size = x.shape[0]
-        self.actor_optimizer.step(actor_loss, batch_size, it)
         self.critic_optimizer.step(critic_loss, batch_size, it)
         return metrics
 
