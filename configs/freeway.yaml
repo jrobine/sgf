@@ -1,0 +1,216 @@
+# same as default.yaml, except trainer.env_temperature set to 0.01
+
+action_stack: 4
+
+env:
+  sticky: false
+  full_action_space: false
+  max_frames: 20000
+  noop_max: 30
+  resolution: 64
+  grayscale: false
+  frame_skip: 4
+  frame_stack: 4
+  episodic_life: true
+
+wm:
+  y_dim: 512
+  z_dim: 2048
+
+  encoder:
+    channels: 64-128-256-64
+    kernels: 4-4-4-3
+    strides: 2-2-2-1
+    paddings: 1-1-1-1
+    norm: layer
+    act: silu
+    init: truncated_normal
+    out_bias: true
+    out_norm: true
+
+  projector:
+    dims: 2048-2048
+    norm: layer
+    act: silu
+    init: truncated_normal
+    out_bias: false
+    out_norm: false
+    objective: l2
+
+  predictor:
+    dims: 2048-2048
+    norm: layer
+    act: silu
+    init: truncated_normal
+    out_bias: true
+    out_norm: false
+    objective: l2
+
+  transition_predictor:
+    dims: 1024-1024-1024-1024-1024
+    norm: layer
+    act: silu
+    init: truncated_normal
+    out_bias: true
+    out_norm: false
+    objective: l2
+
+  reward_predictor:
+    dims: 1024-1024
+    norm: layer
+    act: silu
+    init: truncated_normal
+    out_init: zeros
+    dist: twohot
+    pred: mean
+    symlog: true
+    num_bins: 255
+    low: -15
+    high: 15
+
+  terminal_predictor:
+    dims: 1024-1024
+    norm: layer
+    act: silu
+    init: truncated_normal
+    out_init: zeros
+    dist: bernoulli
+    pred: mode
+
+  contrastive: false
+  sim_coef: 12.5
+  var_coef: 25.0
+  cov_coef: 1.0
+  reward_coef: 1.0
+  terminal_coef: 1.0
+
+policy:
+  actor:
+    dims: 512-512
+    norm: layer
+    act: silu
+    init: truncated_normal
+    out_init: zeros
+
+  critic:
+    dims: 512-512
+    norm: layer
+    act: silu
+    init: truncated_normal
+    out_init: zeros
+    dist: twohot
+    pred: mean
+    symlog: true
+    num_bins: 255
+    low: -20
+    high: 20
+
+trainer:
+  env_steps: 100000
+  init_steps: 5000
+  env_epsilon: 0.01
+  env_temperature: 0.01
+  wm_every: 2
+  agent_every: 2
+  log_every: 100
+  eval_every: 2500
+
+  wm_trainer:
+    batch_size: 1024
+
+    augmentation:
+      - { type: random_shift, shift: 3 }
+      - { type: random_intensity, scale: 0.05 }
+
+    representation_optimizer:
+      type: adamw
+      base_lr: 1.5e-4
+      end_lr: 1.5e-4
+      warmup_its: 5000
+      betas: [ 0.9, 0.999 ]
+      eps: 1e-8
+      weight_decay: 0.001
+      clip: 10.0
+
+    transition_optimizer:
+      type: adamw
+      base_lr: 3e-4
+      end_lr: 3e-4
+      warmup_its: 5000
+      betas: [ 0.9, 0.999 ]
+      eps: 1e-8
+      weight_decay: 0.001
+      clip: 500.0
+
+    debug:
+      dream_horizon: 30
+      # DreamerV3 decoder
+      decoder:
+        in_res: 4
+        channels: 256-128-64-32
+        kernels: 4-4-4-4
+        strides: 2-2-2-2
+        paddings: 1-1-1-1
+        norm: { type: layer, eps: 1e-3 }
+        act: silu
+        init: truncated_normal
+      optimizer:
+        type: adamw
+        base_lr: 2.5e-5
+        end_lr: 2.5e-5
+        warmup_its: 0
+        betas: [ 0.9, 0.999 ]
+        eps: 1e-5
+        weight_decay: 0.0
+        clip: 1000.0
+
+  agent_trainer:
+    batch_size: 3072
+    horizon: 10
+
+    eval_env:
+      sticky: false
+      full_action_space: false
+      max_frames: 108000
+      noop_max: 1
+      resolution: 64
+      grayscale: false
+      frame_skip: 4
+      frame_stack: 4
+      episodic_life: false
+    eval_num_parallel: 20
+    eval_temperature: 0.5
+    eval_epsilon: 0.0
+    eval_episodes: 20
+    final_eval_episodes: 100
+
+    policy_trainer:
+      reward_act: none
+      return_norm: true
+      gamma: 0.997
+      lmbda: 0.95
+      entropy_coef: 0.001
+      target_decay: 0.98
+      target_returns: false
+      target_coef: 1.0
+      target_every: 1
+
+      actor_optimizer:
+        type: adamw
+        base_lr: 2e-7
+        end_lr: 2e-7
+        warmup_its: 0
+        betas: [ 0.9, 0.999 ]
+        eps: 1e-5
+        weight_decay: 0.0
+        clip: 100.0
+
+      critic_optimizer:
+        type: adamw
+        base_lr: 2e-7
+        end_lr: 2e-7
+        warmup_its: 0
+        betas: [ 0.9, 0.999 ]
+        eps: 1e-5
+        weight_decay: 0.0
+        clip: 100.0
