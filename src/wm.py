@@ -256,7 +256,7 @@ class WorldModelTrainer:
 
                 flat_a = wm.flatten_actions(stacked_a, dtype=dtype)
 
-            representation_loss, metrics, yt, next_yt = wm.representation_loss(ot, next_ot, flat_a, next_r, next_term)
+            representation_loss, representation_metrics, yt, next_yt = wm.representation_loss(ot, next_ot, flat_a, next_r, next_term)
 
         # Compute the transition loss
         with self.autocast():
@@ -271,11 +271,12 @@ class WorldModelTrainer:
                     y = wm.encoder(o)
                     next_y = wm.encoder(next_o)
 
-            transition_loss, metrics = wm.transition_loss(y, flat_a, next_y)
+            transition_loss, transition_metrics = wm.transition_loss(y, flat_a, next_y)
 
         # Optimize the world model
         self.representation_optimizer.step(representation_loss, self.batch_size, it)
         self.transition_optimizer.step(transition_loss, self.batch_size, it)
+        metrics = {**representation_metrics, **transition_metrics}
         return metrics, y
 
     def _optimize_decoder(self, o, y, it):
